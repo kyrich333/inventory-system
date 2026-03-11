@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 
 const inventoryRoutes = require("./routes/inventoryRoute");
-console.log(inventoryRoutes);
+//console.log(inventoryRoutes);
 const app = express();
 
 app.use(cors());
