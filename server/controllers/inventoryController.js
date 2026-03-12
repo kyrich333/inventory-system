@@ -167,3 +167,175 @@ exports.addStock = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
+
+exports.transferStock = async (req, res) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    const {
+      item_id,
+      from_location,
+      to_location,
+      to_location_code,
+      quantity
+    } = req.body;
+
+    await client.query("BEGIN");
+
+    let destinationId = to_location;
+
+    // create location if user typed new one
+    if (!destinationId && to_location_code) {
+
+      const checkLocation = await client.query(
+        `SELECT id FROM locations WHERE code = $1`,
+        [to_location_code]
+      );
+
+      if (checkLocation.rows.length > 0) {
+
+        destinationId = checkLocation.rows[0].id;
+
+      } else {
+
+        const newLocation = await client.query(
+          `
+          INSERT INTO locations (code)
+          VALUES ($1)
+          RETURNING id
+          `,
+          [to_location_code]
+        );
+
+        destinationId = newLocation.rows[0].id;
+      }
+    }
+
+    // check stock at source
+    const source = await client.query(
+      `
+      SELECT quantity
+      FROM inventory
+      WHERE item_id = $1 AND location_id = $2
+      `,
+      [item_id, from_location]
+    );
+
+    if (source.rows.length === 0) {
+      throw new Error("No stock at source location");
+    }
+
+    if (source.rows[0].quantity < quantity) {
+      throw new Error("Not enough stock");
+    }
+
+    // reduce source stock
+    await client.query(
+      `
+      UPDATE inventory
+      SET quantity = quantity - $1
+      WHERE item_id = $2 AND location_id = $3
+      `,
+      [quantity, item_id, from_location]
+    );
+
+    // add stock to destination
+    await client.query(
+      `
+      INSERT INTO inventory (item_id, location_id, quantity)
+      VALUES ($1,$2,$3)
+      ON CONFLICT (item_id, location_id)
+      DO UPDATE SET quantity = inventory.quantity + EXCLUDED.quantity
+      `,
+      [item_id, destinationId, quantity]
+    );
+
+    // record movement
+    await client.query(
+      `
+      INSERT INTO stock_movements
+      (item_id, from_location, to_location, quantity, movement_type)
+      VALUES ($1,$2,$3,$4,'transfer')
+      `,
+      [item_id, from_location, destinationId, quantity]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ message: "Stock transferred successfully" });
+
+  } catch (err) {
+
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: err.message });
+
+  } finally {
+
+    client.release();
+
+  }
+};
+
+exports.getItemLocations = async (req, res) => {
+  try {
+
+    const { itemId } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        locations.id,
+        locations.code,
+        inventory.quantity
+      FROM inventory
+      JOIN locations ON inventory.location_id = locations.id
+      WHERE inventory.item_id = $1
+      AND inventory.quantity > 0
+      ORDER BY locations.code
+      `,
+      [itemId]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+};
+
+// =================================
+// Get Item Location Summary
+// (All locations with quantity of this item)
+// =================================
+exports.getItemLocationSummary = async (req, res) => {
+  try {
+
+    const { itemId } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT
+        locations.id,
+        locations.code,
+        COALESCE(inventory.quantity, 0) AS quantity
+      FROM locations
+      LEFT JOIN inventory
+        ON inventory.location_id = locations.id
+        AND inventory.item_id = $1
+      ORDER BY locations.code
+      `,
+      [itemId]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+};
+

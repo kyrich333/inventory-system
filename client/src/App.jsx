@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AddProductForm from "./components/AddProductForm";
 import AddStockForm from "./components/AddStockForm";
+import TransferStockForm from "./components/TransferStockForm";
 
 function App() {
 
@@ -9,6 +10,7 @@ function App() {
 
   const [showProductForm, setShowProductForm] = useState(false);
   const [showStockForm, setShowStockForm] = useState(false);
+  const [showTransferForm, setShowTransferForm] = useState(false);
 
   // Load all inventory
   const fetchInventory = async () => {
@@ -44,7 +46,7 @@ function App() {
     }
   };
 
-  // Load inventory on page load
+  // Load inventory when page opens
   useEffect(() => {
     fetchInventory();
   }, []);
@@ -106,6 +108,17 @@ function App() {
         </button>
 
         <button
+          onClick={() => setShowTransferForm(true)}
+          style={{
+            padding: "8px 15px",
+            marginRight: "10px",
+            cursor: "pointer"
+          }}
+        >
+          Transfer Stock
+        </button>
+
+        <button
           onClick={() => {
             setQuery("");
             fetchInventory();
@@ -120,15 +133,25 @@ function App() {
 
       </div>
 
-      {/* PRODUCT FORM */}
+      {/* ADD PRODUCT FORM */}
       {showProductForm && (
-        <AddProductForm onClose={() => setShowProductForm(false)} />
+        <AddProductForm
+          onClose={() => setShowProductForm(false)}
+        />
       )}
 
-      {/* STOCK FORM */}
+      {/* ADD STOCK FORM */}
       {showStockForm && (
         <AddStockForm
           onClose={() => setShowStockForm(false)}
+          refreshInventory={fetchInventory}
+        />
+      )}
+
+      {/* TRANSFER STOCK FORM */}
+      {showTransferForm && (
+        <TransferStockForm
+          onClose={() => setShowTransferForm(false)}
           refreshInventory={fetchInventory}
         />
       )}
