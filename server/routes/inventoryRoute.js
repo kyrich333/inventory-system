@@ -6,5 +6,5 @@ const inventoryController = require("../controllers/inventoryController");
 router.get("/", inventoryController.getInventory);
 router.get("/items", inventoryController.getItems);
 router.get("/search", inventoryController.searchInventory);
-
+router.post("/stock", inventoryController.addStock);
 module.exports = router;
