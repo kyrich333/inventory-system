@@ -10,6 +10,7 @@ function AddStockForm({ onClose, refreshInventory }) {
   const [locationCode, setLocationCode] = useState("");
   const [quantity, setQuantity] = useState("");
 
+
   // Load products
   const fetchItems = async () => {
     try {
@@ -21,7 +22,7 @@ function AddStockForm({ onClose, refreshInventory }) {
     }
   };
 
-  // Load locations
+  // Load all locations
   const fetchLocations = async () => {
     try {
       const res = await fetch("http://localhost:5000/locations");
@@ -36,6 +37,25 @@ function AddStockForm({ onClose, refreshInventory }) {
     fetchItems();
     fetchLocations();
   }, []);
+
+  // Load locations where item exists
+  const fetchItemLocations = async (id) => {
+
+    if (!id) return;
+
+    const res = await fetch(
+      `http://localhost:5000/inventory/item-locations/${id}`
+    );
+
+    const data = await res.json();
+    setLocations(data);
+  };
+
+  useEffect(() => {
+    fetchItems();
+    fetchLocations();
+  }, []);
+
 
   const addStock = async () => {
 
@@ -97,11 +117,14 @@ function AddStockForm({ onClose, refreshInventory }) {
 
       <select
         value={itemId}
-        onChange={(e) => setItemId(e.target.value)}
+        onChange={(e) => {
+          const id = e.target.value;
+          setItemId(id);
+          fetchItemLocations(id);
+        }}
         style={{ width: "100%", padding: "8px" }}
       >
         <option value="">Select Product</option>
-
         {items.map((item) => (
           <option key={item.id} value={item.id}>
             {item.brand} {item.code}
@@ -118,7 +141,17 @@ function AddStockForm({ onClose, refreshInventory }) {
       <select
         value={locationId}
         onChange={(e) => {
-          setLocationId(e.target.value);
+
+          const id = e.target.value;
+          setLocationId(id);
+          
+
+          const loc = locations.find(l => l.id == id);
+
+          if (loc) {
+            setAvailableQty(loc.quantity);
+          }
+
           setLocationCode("");
         }}
         style={{ width: "100%", padding: "8px" }}
@@ -127,7 +160,7 @@ function AddStockForm({ onClose, refreshInventory }) {
 
         {locations.map((loc) => (
           <option key={loc.id} value={loc.id}>
-            {loc.code}
+            {loc.code} ({loc.quantity})
           </option>
         ))}
       </select>
