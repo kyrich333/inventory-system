@@ -158,16 +158,24 @@ function TransferStockForm({ onClose, refreshInventory }) {
       <select
         value={toLocation}
         onChange={(e) => {
-          setToLocation(e.target.value);
+          const id = e.target.value;
+          setToLocation(id);
           setNewLocation("");
+
+          const loc = allLocations.find(l => l.id == id);
+
+          if (loc) {
+            setAvailableQty(loc.quantity);
+          }
+
         }}
         style={{ width: "100%", padding: "8px" }}
       >
         <option value="">Select Destination</option>
 
-        {allLocations.map((loc) => (
+        {fromLocations.map((loc) => (
           <option key={loc.id} value={loc.id}>
-            {loc.code}
+            {loc.code} ({loc.quantity})
           </option>
         ))}
 
