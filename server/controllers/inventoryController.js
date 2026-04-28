@@ -182,6 +182,10 @@ exports.transferStock = async (req, res) => {
       quantity
     } = req.body;
 
+    if (to_location && from_location === to_location) {
+    throw new Error("Cannot transfer to the same location");
+}
+
     await client.query("BEGIN");
 
     let destinationId = to_location;
@@ -215,10 +219,11 @@ exports.transferStock = async (req, res) => {
 
     // check stock at source
     const source = await client.query(
-      `
+       `
       SELECT quantity
       FROM inventory
       WHERE item_id = $1 AND location_id = $2
+      FOR UPDATE
       `,
       [item_id, from_location]
     );

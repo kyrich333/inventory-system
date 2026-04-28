@@ -33,11 +33,6 @@ function AddStockForm({ onClose, refreshInventory }) {
     }
   };
 
-  useEffect(() => {
-    fetchItems();
-    fetchLocations();
-  }, []);
-
   // Load locations where item exists
   const fetchItemLocations = async (id) => {
 

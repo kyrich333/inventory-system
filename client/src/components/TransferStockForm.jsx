@@ -67,6 +67,11 @@ function TransferStockForm({ onClose, refreshInventory }) {
       return;
     }
 
+    if (fromLocation === toLocation) {
+    alert("Cannot transfer to the same location");
+    return;
+    }
+
     if (Number(quantity) > availableQty) {
       alert(`Cannot transfer more than ${availableQty}`);
       return;
@@ -162,21 +167,18 @@ function TransferStockForm({ onClose, refreshInventory }) {
           setToLocation(id);
           setNewLocation("");
 
-          const loc = allLocations.find(l => l.id == id);
-
-          if (loc) {
-            setAvailableQty(loc.quantity);
-          }
 
         }}
         style={{ width: "100%", padding: "8px" }}
       >
         <option value="">Select Destination</option>
 
-        {fromLocations.map((loc) => (
-          <option key={loc.id} value={loc.id}>
-            {loc.code} ({loc.quantity})
-          </option>
+        {fromLocations
+          .filter(loc => loc.id !== Number(fromLocation))
+          .map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.code} ({loc.quantity})
+            </option>
         ))}
 
       </select>
